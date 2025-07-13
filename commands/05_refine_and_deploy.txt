@@ -1,0 +1,64 @@
+# Refine and Deploy Commands
+
+
+# 05_refine_and_deploy.txt
+
+## Son Gözden Geçirme ve Dağıtıma Hazırlık Komutu
+
+Bu komut, projenin tüm geliştirme ve denetim aşamaları tamamlandıktan sonra, son gözden geçirmeleri yapar, performansı optimize eder ve projeyi dağıtıma (deployment) hazır hale getirir. Bu, projenin canlıya alınmadan önceki son kontrol noktasıdır.
+
+---
+
+**Komut Açıklaması:**
+
+Bu komut, `output/project_files` klasöründeki projenin nihai halini alır. `03_rules.md` ve `08_ui_ux_guidelines.md` dosyalarındaki performans ve kalite hedeflerine ulaşılıp ulaşılmadığını kontrol eder. Gerekli son optimizasyonları yapar ve dağıtım için uygun bir `build` çıktısı oluşturur.
+
+**Yürütme Talimatı:**
+
+1.  **Kod Tabanı Son Kontrolü:**
+    *   `output/project_files` klasöründeki tüm kod dosyalarında `console.log`, `debugger` gibi debug ifadelerinin temizlendiğinden emin ol.
+    *   `03_rules.md` dosyasındaki "Yasaklar" bölümündeki tüm maddelerin (örn: `!important` kullanımı, placeholder metinler) kontrol edildiğinden ve giderildiğinden emin ol.
+    *   `04_site_structure.md` dosyasındaki tüm sayfaların ve bölümlerin eksiksiz bir şekilde uygulandığını doğrula.
+
+2.  **Performans ve Erişilebilirlik Denetimi:**
+    *   Projenin yerel bir sunucuda çalıştırıldığından emin ol.
+    *   Lighthouse denetimi yap (örneğin, `npx lighthouse https://localhost:3000` komutu ile veya tarayıcı geliştirici araçları üzerinden).
+    *   `02_project_overview.md` dosyasında belirtilen 95+ Lighthouse skor hedefine ulaşılıp ulaşılmadığını kontrol et.
+    *   Erişilebilirlik (Accessibility) denetimini tekrarla (manuel olarak veya `axe-core` gibi araçlarla).
+    *   Tüm görsellerin optimize edildiğinden (WebP formatı, uygun boyutlar) ve `alt` metinlerinin bulunduğundan emin ol.
+
+3.  **Test ve Doğrulama:**
+    *   Tüm sayfalarda navigasyonun düzgün çalıştığını doğrula.
+    *   Tüm interaktif elementlerin (butonlar, linkler, formlar) beklendiği gibi çalıştığını test et.
+    *   Farklı ekran boyutlarında (mobil, tablet, masaüstü) responsive tasarımın doğru çalıştığını kontrol et.
+    *   Varsa, iletişim formunun (sadece frontend tarafı) düzgün çalıştığını ve gerekli validasyonları yaptığını doğrula.
+
+4.  **Üretim İçin Build Oluşturma:**
+    *   `output/project_files` dizinine geç.
+    *   Next.js projesini üretim için derle:
+        ```bash
+        pnpm run build
+        ```
+    *   Bu komut, `output/project_files/.next` klasörü altında dağıtıma hazır statik dosyaları ve sunucu fonksiyonlarını oluşturacaktır.
+
+5.  **Dağıtım (Deployment) Talimatı:**
+    *   Proje, `05_tech_stack.md` dosyasında belirtilen Vercel platformuna dağıtıma hazırdır.
+    *   Dağıtım için Vercel CLI kullanılabilir:
+        ```bash
+        # Vercel CLI yüklü değilse
+        npm install -g vercel
+
+        # Proje dizininde (output/project_files) iken
+        vercel deploy
+        ```
+    *   Alternatif olarak, GitHub entegrasyonu ile otomatik dağıtım da yapılandırılabilir.
+
+**Beklenen Çıktı:**
+
+*   `output/project_files/.next` klasörü altında optimize edilmiş üretim build dosyaları.
+*   Projenin canlı bir URL üzerinde erişilebilir olması (Vercel dağıtımı sonrası).
+*   Herhangi bir performans veya erişilebilirlik sorunu kalmaması.
+
+**Sonuç:**
+
+Bu komut başarıyla tamamlandığında, AI Researcher Portfolio projesi canlıya alınmaya ve Dr. Elif Yılmaz'ın çalışmalarını dünyaya sergilemeye hazırdır.

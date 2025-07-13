@@ -1,0 +1,40 @@
+# Setup Environment Commands
+
+# 01_setup_environment.txt
+
+## Geliştirme Ortamını ve Proje İskeletini Kurma Komutu
+
+Bu komut, AI Researcher Portfolio projesi için temel geliştirme ortamını hazırlar ve Next.js proje iskeletini oluşturur. Bu adım, projenin başlangıç noktasıdır ve diğer tüm geliştirme faaliyetleri bu temel üzerine inşa edilecektir.
+
+---
+
+**Komut Açıklaması:**
+
+Bu komut, `05_tech_stack.md` dosyasında belirtilen Next.js framework'ünü kullanarak yeni bir TypeScript projesi başlatır. Ayrıca, Tailwind CSS entegrasyonunu ve ESLint/Prettier gibi kod kalitesi araçlarının temel yapılandırmasını da içerir.
+
+**Yürütme Talimatı:**
+
+```bash
+# Proje dizinine geç
+cd ai-researcher-portfolio-v3/output/project_files
+
+# Next.js projesini oluştur (TypeScript, ESLint, Tailwind CSS, App Router, Src dizini ile)
+npx create-next-app@latest . --ts --eslint --tailwind --app --src-dir
+
+# Gerekli ek bağımlılıkları yükle (pnpm kullanılarak)
+pnpm install
+
+# Temel klasör yapısını oluştur (data, lib)
+mkdir -p src/{data/{blog,projects},lib}
+
+# .env.local dosyasını oluştur (hassas bilgiler için)
+touch .env.local
+
+# README.md dosyasını oluştur
+echo "# AI Researcher Portfolio" > README.md
+
+# .gitignore dosyasını güncelle (eğer yoksa veya eksikse)
+# Bu kısım create-next-app tarafından otomatik oluşturulur, ancak kontrol amaçlı eklendi.
+# Eğer .gitignore içinde node_modules, .next, .env.local yoksa ekle.
+# Örneğin:
+# echo -e "\n.env.local\n.next\nnode_modules" >> .gitignore

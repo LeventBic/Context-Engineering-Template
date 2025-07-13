@@ -1,0 +1,71 @@
+# Security Audit Commands
+
+# 04_security_audit.txt
+
+## Üretilen Koda Güvenlik Denetimi Yapma Komutu
+
+Bu komut, `03_execute_tasks.txt` komutu ile üretilen tüm kod tabanını, `03_rules.md` dosyasında belirtilen güvenlik prensipleri ve genel web güvenlik en iyi uygulamaları doğrultusunda kapsamlı bir şekilde denetler. Amaç, potansiyel güvenlik açıklarını tespit etmek ve raporlamaktır.
+
+---
+
+**Komut Açıklaması:**
+
+Bu komut, `output/project_files` klasörü altındaki tüm kaynak kod dosyalarını (özellikle `.tsx`, `.ts` dosyalarını) tarar. `prompts/security_audit.tpl` şablonunu kullanarak, her bir dosya veya kritik kod bloğu için güvenlik analizi yapar. Tespit edilen tüm güvenlik zafiyetlerini, potansiyel riskleri ve önerilen düzeltmeleri içeren detaylı bir rapor oluşturur.
+
+**Yürütme Talimatı:**
+
+1.  **`output/project_files` klasöründeki tüm kaynak kod dosyalarını listele.** (Özellikle `.tsx`, `.ts`, `.js` uzantılı dosyalar)
+2.  **Her bir kaynak kod dosyası için aşağıdaki adımları tekrarla:**
+    a.  **Dosyanın içeriğini oku.**
+    b.  **`prompts/security_audit.tpl` şablonunu kullan:** Bu şablonu, dosyanın içeriğini `{code_content}` parametresine yerleştirerek bir prompt oluştur.
+    c.  **Oluşturulan promptu yürüt:** Bu promptu çalıştırarak ajandan dosya için güvenlik denetimi yapmasını iste.
+    d.  **Denetim sonuçlarını topla:** Ajanın döndürdüğü güvenlik bulgularını geçici olarak sakla.
+3.  **Tüm denetim sonuçlarını birleştir:** Tüm dosyalardan toplanan güvenlik bulgularını tek bir kapsamlı raporda birleştir.
+4.  **Raporu kaydet:** Oluşturulan güvenlik denetimi raporunu `output/reports/security_audit_report.md` dosyasına yaz.
+
+**Beklenen Çıktı (`output/reports/security_audit_report.md` için örnek yapı):
+
+```markdown
+# AI Researcher Portfolio - Güvenlik Denetimi Raporu
+
+**Tarih:** 2025-07-13
+**Denetleyen:** Manus AI
+
+Bu rapor, AI Researcher Portfolio projesinin kaynak kodunda yapılan güvenlik denetiminin bulgularını içermektedir. Denetim, `03_rules.md` dosyasında belirtilen güvenlik prensipleri ve genel web güvenlik en iyi uygulamaları doğrultusunda gerçekleştirilmiştir.
+
+---
+
+## Genel Değerlendirme
+
+Proje kod tabanı genel olarak iyi güvenlik pratiklerine uymaktadır. Ancak, aşağıda belirtilen potansiyel zafiyetler veya iyileştirme alanları tespit edilmiştir.
+
+## Tespit Edilen Zafiyetler ve Öneriler
+
+### 1. Potansiyel XSS Zafiyeti (Düşük Risk)
+
+*   **Dosya:** `src/components/organisms/BlogPost.tsx`
+*   **Satır/Kod Bloğu:** `
+    <div dangerouslySetInnerHTML={{ __html: post.content }} />
+    `
+*   **Açıklama:** `dangerouslySetInnerHTML` kullanımı, eğer `post.content` kullanıcının kontrolünde olan bir girdiden geliyorsa, Cross-Site Scripting (XSS) saldırılarına yol açabilir. Her ne kadar bu projede içerik `.mdx` dosyalarından gelse de, gelecekteki olası değişiklikler için risk oluşturabilir.
+*   **Öneri:** `post.content` bir Markdown içeriği ise, bunu güvenli bir Markdown renderer kütüphanesi (örn: `react-markdown` veya `next-mdx-remote` ile güvenli parsing) kullanarak render edin. Asla doğrudan `dangerouslySetInnerHTML` kullanmayın.
+
+### 2. Ortam Değişkeni Kullanımı (Bilgilendirme)
+
+*   **Dosya:** `src/lib/api.ts` (varsayımsal)
+*   **Açıklama:** API anahtarları veya hassas konfigürasyonlar için ortam değişkenlerinin (`process.env.NEXT_PUBLIC_API_KEY`) doğru bir şekilde kullanıldığı tespit edilmiştir. Bu, iyi bir güvenlik pratiğidir.
+*   **Öneri:** `NEXT_PUBLIC_` öneki sadece istemci tarafında erişilmesi gereken değişkenler için kullanılmalıdır. Sunucu tarafında kalması gereken değişkenler için bu önek kullanılmamalıdır.
+
+### 3. Bağımlılık Güvenliği (Kontrol Edilmeli)
+
+*   **Açıklama:** `package.json` dosyasındaki bağımlılıkların bilinen güvenlik açıkları için taranması gerekmektedir. `npm audit` veya `pnpm audit` gibi araçlar düzenli olarak çalıştırılmalıdır.
+*   **Öneri:** Proje geliştirme sürecinde ve dağıtımdan önce düzenli olarak bağımlılık denetimleri yapın.
+
+## Sonuç
+
+Genel olarak, proje kodu iyi güvenlik pratiklerine uymaktadır. Yukarıda belirtilen önerilerin uygulanması, projenin güvenlik duruşunu daha da güçlendirecektir.
+```
+
+**Sonraki Adım:**
+
+Güvenlik denetimi raporu oluşturulduktan sonra, `05_refine_and_deploy.txt` komutu ile son gözden geçirmeler yapılabilir ve dağıtıma hazırlık adımları tamamlanabilir.

@@ -1,0 +1,56 @@
+# Generate Tasks Commands
+
+# 02_generate_tasks.txt
+
+## Detaylı Görev Listesi Oluşturma Komutu
+
+Bu komut, projenin tüm `context` dosyalarını analiz ederek, portfolyo sitesini inşa etmek için gereken tüm teknik görevleri içeren detaylı, sıralı ve onay kutulu bir Markdown listesi oluşturur.
+
+---
+
+**Komut Açıklaması:**
+
+Bu komut, `prompts/generate_tasklist.tpl` şablonunu kullanarak, `context` klasöründeki tüm dosyaları (özellikle `04_site_structure.md` ve `06_software_architecture.md`) referans alır. Ajan, bu bilgilere dayanarak, projenin tamamlanması için gereken tüm adımları mantıksal bir sırayla listeler.
+
+**Yürütme Talimatı:**
+
+1.  **Tüm `context` dosyalarını oku ve analiz et:** `context/01_persona.md`'den `context/08_ui_ux_guidelines.md`'e kadar olan tüm dosyaların içeriğini dikkatlice incele.
+2.  **`prompts/generate_tasklist.tpl` şablonunu kullan:** Bu şablonu, analiz ettiğin bilgilerle doldurarak bir prompt oluştur.
+3.  **Oluşturulan prompt'u yürüt:** Bu prompt'u çalıştırarak görev listesini oluştur.
+4.  **Çıktıyı kaydet:** Oluşturulan görev listesini `output/reports/task_list.md` dosyasına yaz.
+
+**Beklenen Çıktı (`output/reports/task_list.md` için örnek yapı):
+
+```markdown
+# AI Researcher Portfolio - Görev Listesi
+
+Bu liste, projenin tamamlanması için gereken tüm adımları içermektedir.
+
+### Aşama 1: Temel Yapı ve Stil
+
+- [ ] `tailwind.config.ts` dosyasını `08_ui_ux_guidelines.md`'deki renk paleti ve tipografi ile güncelle.
+- [ ] `src/styles/globals.css` dosyasını temel stiller ve font importları ile ayarla.
+- [ ] `src/app/layout.tsx` dosyasını, `Header` ve `Footer` bileşenlerini içerecek şekilde düzenle.
+
+### Aşama 2: Atomik Bileşenlerin Oluşturulması
+
+- [ ] `src/components/atoms/Button.tsx` bileşenini oluştur.
+- [ ] `src/components/atoms/Logo.tsx` bileşenini oluştur.
+- [ ] ... (diğer atomlar)
+
+### Aşama 3: Sayfaların Oluşturulması
+
+- [ ] Ana Sayfa (`/`) için `src/app/page.tsx` dosyasını ve ilgili organizma bileşenlerini oluştur.
+- [ ] Hakkımda Sayfası (`/about`) için `src/app/about/page.tsx` dosyasını oluştur.
+- [ ] ... (diğer sayfalar)
+
+### Aşama 4: İçerik Entegrasyonu
+
+- [ ] `src/lib/mdx.ts` içinde MDX dosyalarını okuyacak yardımcı fonksiyonları yaz.
+- [ ] Proje ve blog yazılarını `.mdx` dosyaları olarak `src/data/` klasörüne ekle.
+- [ ] ...
+```
+
+**Sonraki Adım:**
+
+`task_list.md` dosyası oluşturulduktan sonra, `03_execute_tasks.txt` komutu ile bu listedeki görevler sırayla yerine getirilebilir.

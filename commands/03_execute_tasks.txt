@@ -1,0 +1,52 @@
+# Execute Tasks Commands
+
+# 03_execute_tasks.txt
+
+## Görev Listesindeki Maddeleri Uygulama Komutu
+
+Bu komut, `output/reports/task_list.md` dosyasında oluşturulan detaylı görev listesindeki her bir maddeyi sırayla uygulayarak projenin geliştirme sürecini yürütür. Her bir görev için `prompts/execute_task.tpl` şablonu kullanılır.
+
+---
+
+**Komut Açıklaması:**
+
+Bu komut, `task_list.md` dosyasını okur ve her bir onay kutulu görevi (örn: `- [ ] Görev Açıklaması`) tek tek işler. Her görev için, görevin tanımını `prompts/execute_task.tpl` şablonuna parametre olarak geçirir ve ajandan ilgili kodu veya içeriği üretmesini ister. Görev tamamlandığında, `task_list.md` dosyasındaki ilgili onay kutusunu işaretler (`- [x] Görev Açıklaması`).
+
+**Yürütme Talimatı:**
+
+1.  **`output/reports/task_list.md` dosyasını oku.**
+2.  **Tamamlanmamış görevleri tespit et:** Dosyadaki `- [ ]` ile başlayan her satırı bir görev olarak kabul et.
+3.  **Her bir tamamlanmamış görev için aşağıdaki adımları tekrarla:**
+    a.  **Görevin açıklamasını al:** Örneğin, "`src/components/atoms/Button.tsx` bileşenini oluştur." gibi.
+    b.  **`prompts/execute_task.tpl` şablonunu kullan:** Bu şablonu, görevin açıklamasını `{task_description}` parametresine yerleştirerek bir prompt oluştur.
+    c.  **Oluşturulan promptu yürüt:** Bu promptu çalıştırarak ajandan ilgili kodu veya içeriği üretmesini iste.
+    d.  **Üretilen çıktıyı kaydet:** Ajanın ürettiği kodu veya içeriği, `06_software_architecture.md` dosyasında belirtilen klasör yapısına uygun olarak `output/project_files` veya `output/content_drafts` altına kaydet.
+    e.  **`task_list.md` dosyasını güncelle:** Görev başarıyla tamamlandığında, `output/reports/task_list.md` dosyasındaki ilgili satırı `- [x]` olarak güncelle. Bu, görevin tamamlandığını gösterir ve bir sonraki çalıştırmada aynı görevin tekrar işlenmesini engeller.
+
+**Beklenen Çıktı:**
+
+*   `output/project_files` klasörü altında, projenin kaynak kod dosyaları (örn: `.tsx`, `.css`, `.ts` dosyaları).
+*   `output/content_drafts` klasörü altında, üretilen metin içerikleri (örn: `.mdx` dosyaları).
+*   `output/reports/task_list.md` dosyasının, tamamlanan görevlerin işaretlenmiş haliyle güncellenmesi.
+
+**Örnek Akış:**
+
+*   **Girdi (task_list.md):**
+    ```markdown
+    - [ ] `src/components/atoms/Button.tsx` bileşenini oluştur.
+    - [ ] `src/app/page.tsx` dosyasını oluştur.
+    ```
+*   **Ajanın İşlemi:**
+    1.  İlk görevi okur: "`src/components/atoms/Button.tsx` bileşenini oluştur."
+    2.  `execute_task.tpl`'i bu görevle doldurur ve çalıştırır.
+    3.  Ajan, `Button.tsx` için kodu üretir ve `output/project_files/src/components/atoms/Button.tsx` konumuna kaydeder.
+    4.  `task_list.md`'yi günceller:
+        ```markdown
+        - [x] `src/components/atoms/Button.tsx` bileşenini oluştur.
+        - [ ] `src/app/page.tsx` dosyasını oluştur.
+        ```
+    5.  İkinci göreve geçer ve aynı adımları tekrarlar.
+
+**Sonraki Adım:**
+
+`task_list.md` dosyasındaki tüm görevler tamamlandığında, `04_security_audit.txt` komutu ile güvenlik denetimi yapılabilir.
