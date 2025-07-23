@@ -1,0 +1,445 @@
+-- inFlow Stok ve Üretim Yönetimi - MySQL Database Schema
+-- Bu dosya MySQL veritabanı şemasını oluşturur
+
+-- Veritabanı oluştur
+CREATE DATABASE IF NOT EXISTS inflow_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE inflow_db;
+
+-- UUID fonksiyonu için extension (MySQL 8.0+)
+-- MySQL'de UUID() fonksiyonu built-in olarak gelir
+
+-- =======================
+-- KULLANICI YÖNETİMİ
+-- =======================
+
+-- Kullanıcılar tablosu
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    role ENUM('admin', 'operator', 'viewer') NOT NULL DEFAULT 'viewer',
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_users_username (username),
+    INDEX idx_users_email (email),
+    INDEX idx_users_role (role),
+    INDEX idx_users_uuid (uuid)
+);
+
+-- =======================
+-- ÜRÜN YÖNETİMİ
+-- =======================
+
+-- Ürün kategorileri
+CREATE TABLE product_categories (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    parent_id INT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (parent_id) REFERENCES product_categories(id) ON DELETE SET NULL,
+    INDEX idx_product_categories_parent (parent_id),
+    INDEX idx_product_categories_uuid (uuid)
+);
+
+-- Ürünler tablosu
+CREATE TABLE products (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    sku VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    barcode VARCHAR(100) UNIQUE,
+    category_id INT,
+    unit_price DECIMAL(10,2) DEFAULT 0,
+    cost_price DECIMAL(10,2) DEFAULT 0,
+    unit VARCHAR(20) DEFAULT 'pcs', -- pcs, kg, lt, m, etc.
+    location VARCHAR(100),
+    min_stock_level INT DEFAULT 0,
+    max_stock_level INT,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_raw_material BOOLEAN DEFAULT FALSE,
+    is_finished_product BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (category_id) REFERENCES product_categories(id) ON DELETE SET NULL,
+    INDEX idx_products_sku (sku),
+    INDEX idx_products_barcode (barcode),
+    INDEX idx_products_category (category_id),
+    INDEX idx_products_type (is_raw_material, is_finished_product),
+    INDEX idx_products_uuid (uuid)
+);
+
+-- =======================
+-- STOK YÖNETİMİ
+-- =======================
+
+-- Envanter tablosu
+CREATE TABLE inventory (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    product_id INT NOT NULL,
+    location VARCHAR(100) DEFAULT 'MAIN',
+    available_quantity DECIMAL(10,3) DEFAULT 0,
+    reserved_quantity DECIMAL(10,3) DEFAULT 0,
+    total_quantity DECIMAL(10,3) GENERATED ALWAYS AS (available_quantity + reserved_quantity) STORED,
+    last_count_date TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_product_location (product_id, location),
+    INDEX idx_inventory_product (product_id),
+    INDEX idx_inventory_location (location),
+    INDEX idx_inventory_uuid (uuid)
+);
+
+-- Stok hareketleri
+CREATE TABLE stock_movements (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    product_id INT NOT NULL,
+    movement_type ENUM('in', 'out', 'adjustment', 'transfer', 'production_in', 'production_out') NOT NULL,
+    quantity DECIMAL(10,3) NOT NULL,
+    unit_cost DECIMAL(10,2),
+    reference_type ENUM('purchase', 'sale', 'production', 'adjustment', 'transfer') NULL,
+    reference_id INT NULL,
+    location_from VARCHAR(100),
+    location_to VARCHAR(100),
+    notes TEXT,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_stock_movements_product (product_id),
+    INDEX idx_stock_movements_type (movement_type),
+    INDEX idx_stock_movements_reference (reference_type, reference_id),
+    INDEX idx_stock_movements_date (created_at),
+    INDEX idx_stock_movements_uuid (uuid)
+);
+
+-- =======================
+-- ÜRETİM YÖNETİMİ
+-- =======================
+
+-- BOM (Bill of Materials) - Malzeme Listeleri
+CREATE TABLE bom (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    finished_product_id INT NOT NULL,
+    version VARCHAR(10) DEFAULT '1.0',
+    is_active BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (finished_product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_product_version (finished_product_id, version),
+    INDEX idx_bom_product (finished_product_id),
+    INDEX idx_bom_uuid (uuid)
+);
+
+-- BOM Kalemleri
+CREATE TABLE bom_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    bom_id INT NOT NULL,
+    raw_material_id INT NOT NULL,
+    quantity DECIMAL(10,3) NOT NULL,
+    unit VARCHAR(20) DEFAULT 'pcs',
+    waste_percentage DECIMAL(5,2) DEFAULT 0,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (bom_id) REFERENCES bom(id) ON DELETE CASCADE,
+    FOREIGN KEY (raw_material_id) REFERENCES products(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_bom_material (bom_id, raw_material_id),
+    INDEX idx_bom_items_bom (bom_id),
+    INDEX idx_bom_items_material (raw_material_id),
+    INDEX idx_bom_items_uuid (uuid)
+);
+
+-- Üretim Emirleri
+CREATE TABLE production_orders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    bom_id INT NOT NULL,
+    planned_quantity DECIMAL(10,3) NOT NULL,
+    produced_quantity DECIMAL(10,3) DEFAULT 0,
+    status ENUM('planned', 'in_progress', 'completed', 'cancelled') DEFAULT 'planned',
+    priority ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
+    planned_start_date TIMESTAMP NULL,
+    planned_end_date TIMESTAMP NULL,
+    actual_start_date TIMESTAMP NULL,
+    actual_end_date TIMESTAMP NULL,
+    estimated_cost DECIMAL(12,2),
+    actual_cost DECIMAL(12,2),
+    notes TEXT,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (bom_id) REFERENCES bom(id) ON DELETE RESTRICT,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_production_orders_status (status),
+    INDEX idx_production_orders_priority (priority),
+    INDEX idx_production_orders_dates (planned_start_date, planned_end_date),
+    INDEX idx_production_orders_bom (bom_id),
+    INDEX idx_production_orders_uuid (uuid)
+);
+
+-- Üretim Hareketleri
+CREATE TABLE production_movements (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    production_order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    movement_type ENUM('material_consumed', 'product_produced', 'waste_recorded') NOT NULL,
+    quantity DECIMAL(10,3) NOT NULL,
+    unit_cost DECIMAL(10,2),
+    location VARCHAR(100),
+    notes TEXT,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (production_order_id) REFERENCES production_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_production_movements_order (production_order_id),
+    INDEX idx_production_movements_product (product_id),
+    INDEX idx_production_movements_type (movement_type),
+    INDEX idx_production_movements_uuid (uuid)
+);
+
+-- =======================
+-- UYARI SİSTEMİ
+-- =======================
+
+-- Uyarılar
+CREATE TABLE alerts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    type ENUM('low_stock', 'production_delay', 'system', 'quality') NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    severity ENUM('info', 'warning', 'error', 'critical') DEFAULT 'info',
+    is_read BOOLEAN DEFAULT FALSE,
+    is_resolved BOOLEAN DEFAULT FALSE,
+    related_entity_type ENUM('product', 'production_order', 'user', 'system') NULL,
+    related_entity_id INT NULL,
+    assigned_to INT NULL,
+    resolved_by INT NULL,
+    resolved_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_alerts_type (type),
+    INDEX idx_alerts_severity (severity),
+    INDEX idx_alerts_status (is_read, is_resolved),
+    INDEX idx_alerts_entity (related_entity_type, related_entity_id),
+    INDEX idx_alerts_assigned (assigned_to),
+    INDEX idx_alerts_uuid (uuid)
+);
+
+-- =======================
+-- RAPORLAMA VE ANALİTİK
+-- =======================
+
+-- Dashboard için özet view'ları
+CREATE VIEW dashboard_stats AS
+SELECT 
+    (SELECT COUNT(*) FROM products WHERE is_active = TRUE) as total_products,
+    (SELECT COUNT(*) FROM products WHERE is_active = TRUE AND is_raw_material = TRUE) as raw_materials_count,
+    (SELECT COUNT(*) FROM products WHERE is_active = TRUE AND is_finished_product = TRUE) as finished_products_count,
+    (SELECT COUNT(*) FROM production_orders WHERE status IN ('planned', 'in_progress')) as active_orders,
+    (SELECT COUNT(*) FROM alerts WHERE is_resolved = FALSE) as unresolved_alerts,
+    (SELECT SUM(i.available_quantity * p.unit_price) 
+     FROM inventory i 
+     JOIN products p ON i.product_id = p.id 
+     WHERE p.is_active = TRUE) as total_inventory_value;
+
+-- Düşük stok uyarıları view
+CREATE VIEW low_stock_products AS
+SELECT 
+    p.id,
+    p.uuid,
+    p.sku,
+    p.name,
+    p.min_stock_level,
+    i.available_quantity,
+    pc.name as category_name,
+    (p.min_stock_level - i.available_quantity) as shortage_quantity
+FROM products p
+JOIN inventory i ON p.id = i.product_id
+LEFT JOIN product_categories pc ON p.category_id = pc.id
+WHERE p.is_active = TRUE 
+  AND i.available_quantity <= p.min_stock_level
+  AND p.min_stock_level > 0;
+
+-- Üretim durumu özeti
+CREATE VIEW production_summary AS
+SELECT 
+    po.id,
+    po.uuid,
+    po.order_number,
+    p.name as product_name,
+    po.planned_quantity,
+    po.produced_quantity,
+    po.status,
+    po.priority,
+    po.planned_start_date,
+    po.planned_end_date,
+    CASE 
+        WHEN po.planned_quantity > 0 THEN 
+            ROUND((po.produced_quantity / po.planned_quantity) * 100, 2)
+        ELSE 0 
+    END as completion_percentage
+FROM production_orders po
+JOIN bom b ON po.bom_id = b.id
+JOIN products p ON b.finished_product_id = p.id
+WHERE po.status IN ('planned', 'in_progress', 'completed');
+
+-- =======================
+-- TRİGGER'LAR
+-- =======================
+
+-- Stok hareketi sonrası envanter güncelleme
+DELIMITER //
+CREATE TRIGGER update_inventory_after_stock_movement
+    AFTER INSERT ON stock_movements
+    FOR EACH ROW
+BEGIN
+    DECLARE current_available DECIMAL(10,3) DEFAULT 0;
+    
+    -- Mevcut stok miktarını al
+    SELECT COALESCE(available_quantity, 0) INTO current_available
+    FROM inventory 
+    WHERE product_id = NEW.product_id 
+      AND location = COALESCE(NEW.location_to, NEW.location_from, 'MAIN');
+    
+    -- Stok hareketine göre güncelle
+    IF NEW.movement_type IN ('in', 'production_in', 'adjustment') THEN
+        SET current_available = current_available + NEW.quantity;
+    ELSEIF NEW.movement_type IN ('out', 'production_out') THEN
+        SET current_available = current_available - NEW.quantity;
+    END IF;
+    
+    -- Envanter tablosunu güncelle veya oluştur
+    INSERT INTO inventory (product_id, location, available_quantity)
+    VALUES (NEW.product_id, COALESCE(NEW.location_to, NEW.location_from, 'MAIN'), current_available)
+    ON DUPLICATE KEY UPDATE 
+        available_quantity = current_available,
+        updated_at = CURRENT_TIMESTAMP;
+END//
+
+-- Düşük stok kontrolü
+CREATE TRIGGER check_low_stock
+    AFTER UPDATE ON inventory
+    FOR EACH ROW
+BEGIN
+    DECLARE min_level INT DEFAULT 0;
+    DECLARE product_name VARCHAR(100);
+    
+    -- Ürünün minimum stok seviyesini al
+    SELECT min_stock_level, name INTO min_level, product_name
+    FROM products 
+    WHERE id = NEW.product_id;
+    
+    -- Eğer stok minimum seviyenin altına düştüyse uyarı oluştur
+    IF NEW.available_quantity <= min_level AND min_level > 0 THEN
+        INSERT INTO alerts (type, title, message, severity, related_entity_type, related_entity_id)
+        VALUES (
+            'low_stock',
+            'Düşük Stok Uyarısı',
+            CONCAT('Ürün: ', product_name, ' stok seviyesi minimum seviyenin altına düştü. Mevcut: ', NEW.available_quantity, ', Minimum: ', min_level),
+            'warning',
+            'product',
+            NEW.product_id
+        );
+    END IF;
+END//
+
+-- Üretim emri tamamlandığında stok güncelleme
+CREATE TRIGGER update_production_completion
+    AFTER UPDATE ON production_orders
+    FOR EACH ROW
+BEGIN
+    DECLARE finished_product_id INT;
+    
+    -- Eğer durum 'completed' olarak değiştiyse
+    IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
+        -- Bitmiş ürünün ID'sini al
+        SELECT b.finished_product_id INTO finished_product_id
+        FROM bom b
+        WHERE b.id = NEW.bom_id;
+        
+        -- Stok hareketini kaydet
+        INSERT INTO stock_movements (
+            product_id, 
+            movement_type, 
+            quantity, 
+            reference_type, 
+            reference_id, 
+            location_to, 
+            notes, 
+            created_by
+        )
+        VALUES (
+            finished_product_id,
+            'production_in',
+            NEW.produced_quantity,
+            'production',
+            NEW.id,
+            'MAIN',
+            CONCAT('Üretim emri tamamlandı: ', NEW.order_number),
+            NEW.created_by
+        );
+    END IF;
+END//
+
+DELIMITER ;
+
+-- =======================
+-- İNDEKSLER VE OPTİMİZASYON
+-- =======================
+
+-- Performans için ek indeksler
+CREATE INDEX idx_stock_movements_product_date ON stock_movements(product_id, created_at);
+CREATE INDEX idx_production_orders_status_priority ON production_orders(status, priority);
+CREATE INDEX idx_alerts_created_unresolved ON alerts(created_at, is_resolved);
+
+-- =======================
+-- İNİTİAL DATA
+-- =======================
+
+-- Varsayılan kategori
+INSERT INTO product_categories (name, description) VALUES 
+('Genel', 'Genel kategori');
+
+-- Varsayılan admin kullanıcısı (şifre: password123)
+INSERT INTO users (uuid, username, email, password_hash, first_name, last_name, role) VALUES 
+(UUID(), 'admin', 'admin@inflow.com', '$2b$10$rOzJAXJEWCkGj5K5Qx5r2.F8QJ5J5J5J5J5J5J5J5J5J5J5J5J5J5O', 'Admin', 'User', 'admin'),
+(UUID(), 'operator1', 'operator@inflow.com', '$2b$10$rOzJAXJEWCkGj5K5Qx5r2.F8QJ5J5J5J5J5J5J5J5J5J5J5J5J5J5O', 'Operator', 'User', 'operator'),
+(UUID(), 'viewer1', 'viewer@inflow.com', '$2b$10$rOzJAXJEWCkGj5K5Qx5r2.F8QJ5J5J5J5J5J5J5J5J5J5J5J5J5J5O', 'Viewer', 'User', 'viewer');
+
+-- Schema oluşturma tamamlandı
+SELECT 'MySQL Database Schema created successfully!' as status; 
