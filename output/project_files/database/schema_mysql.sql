@@ -34,6 +34,36 @@ CREATE TABLE users (
 );
 
 -- =======================
+-- TEDARİKÇİ YÖNETİMİ
+-- =======================
+
+-- Tedarikçiler tablosu
+CREATE TABLE suppliers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    supplier_code VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    contact_person VARCHAR(100),
+    email VARCHAR(100),
+    phone VARCHAR(20),
+    address TEXT,
+    city VARCHAR(50),
+    country VARCHAR(50),
+    tax_number VARCHAR(50),
+    payment_terms INT DEFAULT 30, -- Ödeme vadesi gün
+    currency VARCHAR(3) DEFAULT 'TRY',
+    is_active BOOLEAN DEFAULT TRUE,
+    rating DECIMAL(3,2) DEFAULT 0, -- 0-5 arası rating
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_suppliers_code (supplier_code),
+    INDEX idx_suppliers_name (name),
+    INDEX idx_suppliers_uuid (uuid)
+);
+
+-- =======================
 -- ÜRÜN YÖNETİMİ
 -- =======================
 
@@ -62,12 +92,18 @@ CREATE TABLE products (
     description TEXT,
     barcode VARCHAR(100) UNIQUE,
     category_id INT,
+    supplier_id INT NULL,
     unit_price DECIMAL(10,2) DEFAULT 0,
     cost_price DECIMAL(10,2) DEFAULT 0,
     unit VARCHAR(20) DEFAULT 'pcs', -- pcs, kg, lt, m, etc.
     location VARCHAR(100),
     min_stock_level INT DEFAULT 0,
     max_stock_level INT,
+    reorder_point INT DEFAULT 0,
+    reorder_quantity INT DEFAULT 0,
+    lead_time_days INT DEFAULT 0,
+    expiry_date DATE NULL,
+    batch_number VARCHAR(50),
     is_active BOOLEAN DEFAULT TRUE,
     is_raw_material BOOLEAN DEFAULT FALSE,
     is_finished_product BOOLEAN DEFAULT FALSE,
@@ -75,9 +111,11 @@ CREATE TABLE products (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (category_id) REFERENCES product_categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
     INDEX idx_products_sku (sku),
     INDEX idx_products_barcode (barcode),
     INDEX idx_products_category (category_id),
+    INDEX idx_products_supplier (supplier_id),
     INDEX idx_products_type (is_raw_material, is_finished_product),
     INDEX idx_products_uuid (uuid)
 );
@@ -118,17 +156,69 @@ CREATE TABLE stock_movements (
     reference_id INT NULL,
     location_from VARCHAR(100),
     location_to VARCHAR(100),
+    supplier_id INT NULL,
+    batch_number VARCHAR(50),
+    expiry_date DATE NULL,
     notes TEXT,
     created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_stock_movements_product (product_id),
     INDEX idx_stock_movements_type (movement_type),
+    INDEX idx_stock_movements_supplier (supplier_id),
     INDEX idx_stock_movements_reference (reference_type, reference_id),
     INDEX idx_stock_movements_date (created_at),
     INDEX idx_stock_movements_uuid (uuid)
+);
+
+-- Stok sayımları
+CREATE TABLE stock_counts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    count_number VARCHAR(50) UNIQUE NOT NULL,
+    location VARCHAR(100) DEFAULT 'MAIN',
+    status ENUM('planned', 'in_progress', 'completed', 'cancelled') DEFAULT 'planned',
+    scheduled_date DATE NOT NULL,
+    started_at TIMESTAMP NULL,
+    completed_at TIMESTAMP NULL,
+    total_items INT DEFAULT 0,
+    counted_items INT DEFAULT 0,
+    discrepancies_found INT DEFAULT 0,
+    notes TEXT,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_stock_counts_status (status),
+    INDEX idx_stock_counts_date (scheduled_date),
+    INDEX idx_stock_counts_uuid (uuid)
+);
+
+-- Stok sayım detayları
+CREATE TABLE stock_count_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
+    stock_count_id INT NOT NULL,
+    product_id INT NOT NULL,
+    expected_quantity DECIMAL(10,3) DEFAULT 0,
+    counted_quantity DECIMAL(10,3) DEFAULT 0,
+    variance_quantity DECIMAL(10,3) GENERATED ALWAYS AS (counted_quantity - expected_quantity) STORED,
+    notes TEXT,
+    counted_by INT NULL,
+    counted_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (stock_count_id) REFERENCES stock_counts(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (counted_by) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_count_product (stock_count_id, product_id),
+    INDEX idx_stock_count_items_count (stock_count_id),
+    INDEX idx_stock_count_items_product (product_id),
+    INDEX idx_stock_count_items_uuid (uuid)
 );
 
 -- =======================
@@ -287,13 +377,55 @@ SELECT
     p.min_stock_level,
     i.available_quantity,
     pc.name as category_name,
+    s.name as supplier_name,
     (p.min_stock_level - i.available_quantity) as shortage_quantity
 FROM products p
 JOIN inventory i ON p.id = i.product_id
 LEFT JOIN product_categories pc ON p.category_id = pc.id
+LEFT JOIN suppliers s ON p.supplier_id = s.id
 WHERE p.is_active = TRUE 
   AND i.available_quantity <= p.min_stock_level
   AND p.min_stock_level > 0;
+
+-- Mevcut stok durumu view
+CREATE VIEW current_stock_view AS
+SELECT 
+    p.id,
+    p.uuid,
+    p.sku,
+    p.name,
+    p.barcode,
+    p.unit,
+    p.location,
+    p.min_stock_level,
+    p.max_stock_level,
+    p.reorder_point,
+    p.reorder_quantity,
+    p.unit_price,
+    p.cost_price,
+    p.expiry_date,
+    p.batch_number,
+    i.available_quantity,
+    i.reserved_quantity,
+    i.total_quantity,
+    i.last_count_date,
+    pc.name as category_name,
+    s.name as supplier_name,
+    s.supplier_code,
+    s.contact_person as supplier_contact,
+    s.phone as supplier_phone,
+    (i.available_quantity * p.unit_price) as stock_value,
+    CASE 
+        WHEN i.available_quantity <= 0 THEN 'out_of_stock'
+        WHEN i.available_quantity <= p.min_stock_level THEN 'low_stock'
+        WHEN i.available_quantity >= p.max_stock_level THEN 'overstock'
+        ELSE 'in_stock'
+    END as stock_status
+FROM products p
+LEFT JOIN inventory i ON p.id = i.product_id AND i.location = 'MAIN'
+LEFT JOIN product_categories pc ON p.category_id = pc.id
+LEFT JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = TRUE;
 
 -- Üretim durumu özeti
 CREATE VIEW production_summary AS
@@ -433,7 +565,16 @@ CREATE INDEX idx_alerts_created_unresolved ON alerts(created_at, is_resolved);
 
 -- Varsayılan kategori
 INSERT INTO product_categories (name, description) VALUES 
-('Genel', 'Genel kategori');
+('Genel', 'Genel kategori'),
+('Hammadde', 'Ham maddeler'),
+('Yarı Mamul', 'Yarı mamul ürünler'),
+('Mamul', 'Bitmiş ürünler');
+
+-- Varsayılan tedarikçiler
+INSERT INTO suppliers (supplier_code, name, contact_person, email, phone, city, country) VALUES
+('SUP001', 'ABC Tedarik A.Ş.', 'Ahmet Yılmaz', 'ahmet@abctedarik.com', '+90 212 555 0001', 'İstanbul', 'Türkiye'),
+('SUP002', 'XYZ Malzeme Ltd.', 'Fatma Kaya', 'fatma@xyzmalzeme.com', '+90 312 555 0002', 'Ankara', 'Türkiye'),
+('SUP003', 'Global Supplies Inc.', 'John Smith', 'john@globalsupplies.com', '+1 555 0003', 'New York', 'USA');
 
 -- Varsayılan admin kullanıcısı (şifre: password123)
 INSERT INTO users (uuid, username, email, password_hash, first_name, last_name, role) VALUES 
@@ -441,5 +582,11 @@ INSERT INTO users (uuid, username, email, password_hash, first_name, last_name, 
 (UUID(), 'operator1', 'operator@inflow.com', '$2b$10$rOzJAXJEWCkGj5K5Qx5r2.F8QJ5J5J5J5J5J5J5J5J5J5J5J5J5J5O', 'Operator', 'User', 'operator'),
 (UUID(), 'viewer1', 'viewer@inflow.com', '$2b$10$rOzJAXJEWCkGj5K5Qx5r2.F8QJ5J5J5J5J5J5J5J5J5J5J5J5J5J5O', 'Viewer', 'User', 'viewer');
 
+-- Örnek ürünler
+INSERT INTO products (sku, name, description, category_id, supplier_id, unit_price, cost_price, unit, location, min_stock_level, max_stock_level, reorder_point, reorder_quantity, is_raw_material) VALUES
+('RAW001', 'Çelik Levha 2mm', '2mm kalınlığında çelik levha', 2, 1, 150.00, 120.00, 'kg', 'A-01', 100, 1000, 150, 500, TRUE),
+('RAW002', 'Plastik Granül ABS', 'ABS plastik granül ham madde', 2, 2, 25.50, 20.00, 'kg', 'B-02', 200, 2000, 300, 1000, TRUE),
+('FIN001', 'Hidrolik Silindir HS-100', 'Hidrolik silindir 100mm', 4, NULL, 850.00, 650.00, 'pcs', 'C-01', 10, 100, 15, 50, FALSE);
+
 -- Schema oluşturma tamamlandı
-SELECT 'MySQL Database Schema created successfully!' as status; 
+SELECT 'MySQL Database Schema with Suppliers created successfully!' as status; 

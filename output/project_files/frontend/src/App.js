@@ -17,12 +17,25 @@ import DashboardPage from './pages/Dashboard/DashboardPage';
 import ProductsPage from './pages/Products/ProductsPage';
 import ProductDetailPage from './pages/Products/ProductDetailPage';
 import InventoryPage from './pages/Inventory/InventoryPage';
+import CurrentStockPage from './pages/Inventory/CurrentStockPage';
+import StockReorderPage from './pages/Inventory/StockReorderPage';
+import StockTransfersPage from './pages/Inventory/StockTransfersPage';
+import StockAdjustmentsPage from './pages/Inventory/StockAdjustmentsPage';
+import StockCountsPage from './pages/Inventory/StockCountsPage';
+import StockroomScansPage from './pages/Inventory/StockroomScansPage';
+import SuppliersPage from './pages/Purchasing/SuppliersPage';
+import PurchaseOrdersPage from './pages/Purchasing/PurchaseOrdersPage';
+import PurchaseQuotesPage from './pages/Purchasing/PurchaseQuotesPage';
+import SalesOrdersPage from './pages/Sales/SalesOrdersPage';
+import SalesQuotesPage from './pages/Sales/SalesQuotesPage';
+import CustomersPage from './pages/Customers/CustomersPage';
 import ProductionPage from './pages/Production/ProductionPage';
 import ProductionDetailPage from './pages/Production/ProductionDetailPage';
 import BOMPage from './pages/BOM/BOMPage';
 import UsersPage from './pages/Users/UsersPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ReportsPage from './pages/Dashboard/ReportsPage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -44,6 +57,7 @@ function App() {
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
               
               {/* Protected routes */}
               <Route path="/" element={
@@ -61,6 +75,42 @@ function App() {
                 
                 {/* Inventory */}
                 <Route path="inventory" element={<InventoryPage />} />
+                
+                {/* Current Stock */}
+                <Route path="current-stock" element={<CurrentStockPage />} />
+                
+                {/* Stock Reorder */}
+                <Route path="reorder-stock" element={<StockReorderPage />} />
+                
+                {/* Stock Transfers */}
+                <Route path="stock-transfers" element={<StockTransfersPage />} />
+                
+                {/* Stock Adjustments */}
+                <Route path="stock-adjustments" element={<StockAdjustmentsPage />} />
+                
+                {/* Stock Counts */}
+                <Route path="stock-counts" element={<StockCountsPage />} />
+                
+                {/* Stockroom Scans */}
+                <Route path="stockroom-scans" element={<StockroomScansPage />} />
+                
+                {/* Purchase Orders */}
+                <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+                
+                {/* Purchase Quotes */}
+                <Route path="purchase-quotes" element={<PurchaseQuotesPage />} />
+                
+                {/* Sales Orders */}
+                <Route path="sales-orders" element={<SalesOrdersPage />} />
+                
+                {/* Sales Quotes */}
+                <Route path="sales-quotes" element={<SalesQuotesPage />} />
+                
+                {/* Customers */}
+                <Route path="customers" element={<CustomersPage />} />
+                
+                {/* Suppliers */}
+                <Route path="suppliers" element={<SuppliersPage />} />
                 
                 {/* Production */}
                 <Route path="production" element={<ProductionPage />} />

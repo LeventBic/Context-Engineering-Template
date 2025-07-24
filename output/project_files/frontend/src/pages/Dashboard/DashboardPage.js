@@ -1,147 +1,175 @@
 import React from 'react';
-import { FiTrendingUp, FiPackage, FiTool, FiAlertTriangle, FiPlusCircle, FiShoppingCart, FiBarChart2 } from 'react-icons/fi';
-
-const stats = [
-  {
-    name: 'Toplam Ürün',
-    value: '1,247',
-    icon: <FiPackage className="h-7 w-7 text-primary-600" />,
-    change: '+12%',
-    changeType: 'positive',
-  },
-  {
-    name: 'Düşük Stok',
-    value: '23',
-    icon: <FiAlertTriangle className="h-7 w-7 text-warning-600" />,
-    change: '-5%',
-    changeType: 'negative',
-  },
-  {
-    name: 'Aktif Sipariş',
-    value: '8',
-    icon: <FiShoppingCart className="h-7 w-7 text-red-600" />,
-    change: '+3%',
-    changeType: 'positive',
-  },
-  {
-    name: 'Toplam Değer',
-    value: '₺125,430',
-    icon: <FiTrendingUp className="h-7 w-7 text-green-600" />,
-    change: '+8%',
-    changeType: 'positive',
-  },
-];
-
-const recentActivities = [
-  { id: 1, text: 'Ürün stoku güncellendi', time: '2 dakika önce' },
-  { id: 2, text: 'Yeni sipariş oluşturuldu', time: '10 dakika önce' },
-  { id: 3, text: 'Stok seviyesi kritik', time: '1 saat önce' },
-  { id: 4, text: 'Ürün eklendi', time: '2 saat önce' },
-];
-
-const lowStockAlerts = [
-  { id: 1, name: 'Çelik Levha 2mm', current: 15, min: 100, unit: 'kg' },
-  { id: 2, name: 'Plastik Granül ABS', current: 20, min: 200, unit: 'kg' },
-  { id: 3, name: 'Vida M6x20', current: 950, min: 1000, unit: 'adet' },
-];
-
-const topProducts = [
-  { id: 1, name: 'Hidrolik Silindir HS-100', sales: 120 },
-  { id: 2, name: 'Pnömatik Valf PV-25', sales: 95 },
-  { id: 3, name: 'Kompresör Tankı KT-50', sales: 80 },
-];
+import { Link } from 'react-router-dom';
+import { 
+  FiSettings, 
+  FiPackage, 
+  FiTruck, 
+  FiDollarSign,
+  FiPlus,
+  FiBarChart2,
+  FiClipboard,
+  FiRefreshCw,
+  FiArchive,
+  FiUsers,
+  FiFileText,
+  FiTrendingUp,
+  FiPieChart
+} from 'react-icons/fi';
 
 const DashboardPage = () => {
+  const mainCategories = [
+    {
+      title: "Üretim",
+      color: "bg-purple-600",
+      colorHover: "hover:bg-purple-700",
+      colorLight: "bg-purple-50",
+      colorDark: "text-purple-600",
+      items: [
+        { name: "Üretim siparişleri", icon: <FiSettings className="w-4 h-4" />, link: "/production" },
+        { name: "Operasyonlar", icon: <FiClipboard className="w-4 h-4" />, link: "/operations" }
+      ]
+    },
+    {
+      title: "Satın Alma", 
+      color: "bg-yellow-700",
+      colorHover: "hover:bg-yellow-800",
+      colorLight: "bg-yellow-50",
+      colorDark: "text-yellow-700",
+      items: [
+        { name: "Satın alma siparişleri", icon: <FiFileText className="w-4 h-4" />, link: "/purchase-orders" },
+        { name: "Satın alma teklifleri", icon: <FiFileText className="w-4 h-4" />, link: "/purchase-quotes" },
+        { name: "Tedarikçiler", icon: <FiUsers className="w-4 h-4" />, link: "/suppliers" }
+      ]
+    },
+    {
+      title: "Envanter",
+      color: "bg-blue-600", 
+      colorHover: "hover:bg-blue-700",
+      colorLight: "bg-blue-50",
+      colorDark: "text-blue-600",
+      items: [
+        { name: "Ürünler", icon: <FiPackage className="w-4 h-4" />, link: "/products" },
+        { name: "Stok yeniden sipariş", icon: <FiRefreshCw className="w-4 h-4" />, link: "/reorder-stock" },
+        { name: "Mevcut stok", icon: <FiArchive className="w-4 h-4" />, link: "/current-stock" },
+        { name: "Stok transferleri", icon: <FiTruck className="w-4 h-4" />, link: "/stock-transfers" },
+        { name: "Stok düzeltmeleri", icon: <FiSettings className="w-4 h-4" />, link: "/stock-adjustments" },
+        { name: "Stok sayımları", icon: <FiBarChart2 className="w-4 h-4" />, link: "/stock-counts" },
+        { name: "Depo taramaları", icon: <FiClipboard className="w-4 h-4" />, link: "/stockroom-scans" }
+      ]
+    },
+    {
+      title: "Satış",
+      color: "bg-green-600",
+      colorHover: "hover:bg-green-700", 
+      colorLight: "bg-green-50",
+      colorDark: "text-green-600",
+      items: [
+        { name: "Satış siparişleri", icon: <FiDollarSign className="w-4 h-4" />, link: "/sales-orders" },
+        { name: "Satış teklifleri", icon: <FiFileText className="w-4 h-4" />, link: "/sales-quotes" },
+        { name: "Müşteriler", icon: <FiUsers className="w-4 h-4" />, link: "/customers" }
+      ]
+    }
+  ];
+
+  const reportsCategories = [
+    {
+      title: "Üretim",
+      icon: <FiSettings className="w-4 h-4" />,
+      link: "/reports/manufacturing"
+    },
+    {
+      title: "Satın Alma", 
+      icon: <FiTruck className="w-4 h-4" />,
+      link: "/reports/purchasing"
+    },
+    {
+      title: "Satış",
+      icon: <FiDollarSign className="w-4 h-4" />,
+      link: "/reports/sales"
+    },
+    {
+      title: "Yeniden sipariş ve tahmin",
+      icon: <FiTrendingUp className="w-4 h-4" />,
+      link: "/reports/reordering"
+    },
+    {
+      title: "Denetim kaydı",
+      icon: <FiFileText className="w-4 h-4" />,
+      link: "/reports/audit"
+    },
+    {
+      title: "Ödeme ve muhasebe", 
+      icon: <FiPieChart className="w-4 h-4" />,
+      link: "/reports/accounting"
+    },
+    {
+      title: "Stok seviyeleri",
+      icon: <FiBarChart2 className="w-4 h-4" />,
+      link: "/reports/stock-levels"
+    }
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.name} className="card flex items-center p-6 shadow-md bg-white rounded-lg">
-            <div className="mr-4">{stat.icon}</div>
-            <div>
-              <div className="text-2xl font-bold text-secondary-900">{stat.value}</div>
-              <div className="text-sm text-secondary-500">{stat.name}</div>
-              <div className={`text-xs mt-1 font-medium ${stat.changeType === 'positive' ? 'text-success-600' : 'text-error-600'}`}>{stat.change}</div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Main Categories Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {mainCategories.map((category, index) => (
+            <div key={category.title} className="relative">
+              {/* Category Header */}
+              <div className={`${category.color} ${category.colorHover} text-white p-4 rounded-t-lg relative transition-colors duration-200 cursor-pointer group`}>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-lg">{category.title}</h3>
+                  <FiPlus className="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+              
+              {/* Category Content */}
+              <div className="bg-white border border-gray-200 rounded-b-lg p-4 h-96 flex flex-col">
+                <ul className="space-y-3 flex-1">
+                  {category.items.map((item, itemIndex) => (
+                    <li key={itemIndex}>
+                      <Link
+                        to={item.link}
+                        className={`flex items-center space-x-3 p-2 rounded-lg ${category.colorLight} ${category.colorDark} hover:shadow-sm transition-all duration-200 group`}
+                      >
+                        <span className="opacity-70 group-hover:opacity-100">{item.icon}</span>
+                        <span className="text-sm font-medium group-hover:font-semibold">{item.name}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Reports Section */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          {/* Reports Header */}
+          <div className="bg-purple-600 text-white p-6">
+            <div className="flex items-center space-x-3">
+              <FiBarChart2 className="w-6 h-6" />
+              <h2 className="text-xl font-bold">Raporlar</h2>
             </div>
           </div>
-        ))}
-      </div>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activities */}
-        <div className="card">
-          <div className="card-header flex items-center mb-4">
-            <FiBarChart2 className="h-5 w-5 text-primary-600 mr-2" />
-            <h3 className="text-lg font-semibold text-secondary-900">Son Aktiviteler</h3>
-          </div>
-          <div className="space-y-4">
-            {recentActivities.map((item) => (
-              <div key={item.id} className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm text-secondary-900">{item.text}</p>
-                  <p className="text-xs text-secondary-500">{item.time}</p>
+          
+          {/* Reports Content */}
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+              {reportsCategories.map((report, index) => (
+                <div key={index} className="group h-20">
+                  <Link
+                    to={report.link}
+                    className="flex flex-col items-center justify-center p-3 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-200 rounded-lg transition-colors duration-200 text-sm h-full"
+                  >
+                    <span className="opacity-70 group-hover:opacity-100 mb-2 text-purple-600">{report.icon}</span>
+                    <span className="font-medium group-hover:font-semibold text-center text-gray-700 group-hover:text-purple-700 text-xs leading-tight">{report.title}</span>
+                  </Link>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Low Stock Alerts */}
-        <div className="card">
-          <div className="card-header flex items-center mb-4">
-            <FiAlertTriangle className="h-5 w-5 text-warning-600 mr-2" />
-            <h3 className="text-lg font-semibold text-secondary-900">Düşük Stok Uyarıları</h3>
-          </div>
-          <div className="space-y-4">
-            {lowStockAlerts.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 bg-warning-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <FiPackage className="h-5 w-5 text-warning-600" />
-                  <div>
-                    <p className="text-sm font-medium text-secondary-900">{item.name}</p>
-                    <p className="text-xs text-secondary-500">Mevcut: {item.current} {item.unit}, Minimum: {item.min} {item.unit}</p>
-                  </div>
-                </div>
-                <button className="btn-warning text-xs py-1 px-2">İncele</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Charts & Top Products */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Stock Level Chart (Mock) */}
-        <div className="card">
-          <div className="card-header flex items-center mb-4">
-            <FiBarChart2 className="h-5 w-5 text-primary-600 mr-2" />
-            <h3 className="text-lg font-semibold text-secondary-900">Stok Seviyesi (Örnek)</h3>
-          </div>
-          <div className="h-48 flex items-center justify-center">
-            <div className="w-full h-32 bg-gradient-to-r from-primary-100 to-primary-300 rounded-lg flex items-center justify-center text-primary-700 font-bold text-lg opacity-60">
-              [Burada stok seviyesi bar chart olacak]
+              ))}
             </div>
-          </div>
-        </div>
-        {/* Top Products */}
-        <div className="card">
-          <div className="card-header flex items-center mb-4">
-            <FiTrendingUp className="h-5 w-5 text-green-600 mr-2" />
-            <h3 className="text-lg font-semibold text-secondary-900">En Çok Satan Ürünler</h3>
-          </div>
-          <div className="space-y-3">
-            {topProducts.map((item, idx) => (
-              <div key={item.id} className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="w-8 h-8 flex items-center justify-center rounded-full bg-primary-100 text-primary-700 font-bold mr-3">{idx + 1}</span>
-                  <span className="text-secondary-900 font-medium">{item.name}</span>
-                </div>
-                <span className="text-secondary-500 text-sm">{item.sales} satış</span>
-              </div>
-            ))}
           </div>
         </div>
       </div>
